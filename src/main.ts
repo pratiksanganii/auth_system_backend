@@ -4,9 +4,9 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   // load env
   require('dotenv').config();
-  console.log({ MONGO_URI: process.env.MONGO_URI });
   const app = await NestFactory.create(AppModule);
+  app.enableCors({ origin: '*' });
   const PORT = process.env.PORT ?? 3000;
-  await app.listen(PORT);
+  await app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
 }
 bootstrap();
