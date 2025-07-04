@@ -19,13 +19,11 @@ export class UserController {
   }
 
   @Post('refreshToken')
-  async refreshToken(
-    @Body() refreshTokenDto: RefreshTokenDto,
-    @GetRole() user: GetUserRole,
-  ) {
-    return await this.service.refreshToken(refreshTokenDto, user);
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return await this.service.refreshToken(refreshTokenDto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('logout')
   async logout(@GetRole() user: GetUserRole) {
     return await this.service.logout(user);
@@ -34,6 +32,6 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getUser(@GetRole() user: GetUserRole) {
-    return user;
+    return { user };
   }
 }

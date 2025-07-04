@@ -46,7 +46,7 @@ export class UserService {
     const hashedRefreshToken = await bcrypt.hash(this.sha256(refreshToken), 10);
     // update refresh token
     await this.userModel.findOneAndUpdate(
-      { id: user._id },
+      { _id: user._id },
       { $set: { hashedRefreshToken } },
     );
     return { hashedRefreshToken, accessToken, refreshToken };
@@ -109,9 +109,23 @@ export class UserService {
     };
   }
 
-  async refreshToken(refreshTokenDto: RefreshTokenDto, user: GetUserRole) {
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    if (!refreshTokenDto?.refreshToken)
+      throw new HttpException(
+        'Provide valid Refresh Token',
+        HttpStatus.UNAUTHORIZED,
+      );
+    const verifyJwt: any = jwt.verify(
+      refreshTokenDto.refreshToken,
+      process.env.JWT_REFRESH_SECRET,
+    );
+    if (!verifyJwt)
+      throw new HttpException(
+        'Provide valid Refresh Token',
+        HttpStatus.UNAUTHORIZED,
+      );
     const find = await this.userModel.findOne({
-      id: user.id,
+      _id: verifyJwt.id,
       hashedRefreshToken: { $ne: null },
     });
     if (!find || !find.hashedRefreshToken)
@@ -126,13 +140,17 @@ export class UserService {
       email: find.email,
       _id: find.id,
     });
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+      user: { id: find.id, email: find.email },
+    };
   }
 
   async logout(user: GetUserRole) {
     // update refresh token
     await this.userModel.findOneAndUpdate(
-      { id: user.id },
+      { _id: user.id },
       { $set: { hashedRefreshToken: null } },
     );
     return { message: 'Logout successful' };
