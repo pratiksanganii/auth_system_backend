@@ -35,18 +35,18 @@ export class UserService {
     await user.save();
     const { accessToken, refreshToken } = await this.generateTokens({
       email: user.email,
-      id: user.id,
+      _id: user.id,
     });
-    return { email, accessToken, refreshToken };
+    return { user: { email }, accessToken, refreshToken };
   }
 
   private async generateTokens(user: GenerateTokenPayload) {
-    const accessToken = this.generateToken(user.email);
-    const refreshToken = this.generateToken(user.email, true);
+    const accessToken = this.generateToken(user._id);
+    const refreshToken = this.generateToken(user._id, true);
     const hashedRefreshToken = await bcrypt.hash(this.sha256(refreshToken), 10);
     // update refresh token
     await this.userModel.findOneAndUpdate(
-      { id: user.id },
+      { id: user._id },
       { $set: { hashedRefreshToken } },
     );
     return { hashedRefreshToken, accessToken, refreshToken };
@@ -56,7 +56,7 @@ export class UserService {
     return createHash('sha256').update(value).digest('hex');
   }
 
-  private generateToken(email: string, isRefresh = false) {
+  private generateToken(id: string, isRefresh = false) {
     const secret: string = isRefresh
       ? process.env.JWT_REFRESH_SECRET
       : process.env.JWT_SECRET;
@@ -65,7 +65,7 @@ export class UserService {
         ? (process.env?.JWT_REFRESH_SECRET_EXPIRE_IN ?? '48hr')
         : (process.env?.JWT_SECRET_EXPIRE_IN ?? '8hr')
     ) as StringValue;
-    return jwt.sign({ email }, secret, { expiresIn });
+    return jwt.sign({ id }, secret, { expiresIn });
   }
 
   //#region check user exist for login, signup
@@ -85,7 +85,7 @@ export class UserService {
     // if user does not exist
     if (!findUser) throw new UnauthorizedException('Invalid email');
     // return plain object
-    else return { ...findUser.toObject() };
+    else return findUser.toJSON();
   }
   //#endregion
 
@@ -124,7 +124,7 @@ export class UserService {
       throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
     const { accessToken, refreshToken } = await this.generateTokens({
       email: find.email,
-      id: find.id,
+      _id: find.id,
     });
     return { accessToken, refreshToken };
   }

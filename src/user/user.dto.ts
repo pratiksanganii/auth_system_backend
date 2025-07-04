@@ -21,6 +21,6 @@ export class RefreshTokenDto {
 }
 
 export interface GenerateTokenPayload {
-  id: string;
+  _id: string;
   email: string;
 }
